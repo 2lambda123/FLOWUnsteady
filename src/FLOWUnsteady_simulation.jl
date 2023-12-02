@@ -40,7 +40,7 @@ run_simulation(
     vpm_integration = vpm.rungekutta3,  # VPM time integration scheme (`vpm.euler` or `vpm.rungekutta3`)
     vpm_transposed  = true,             # VPM transposed stretching scheme
     vpm_viscous     = vpm.Inviscid(),   # VPM viscous diffusion scheme (`vpm.Inviscid()`, `vpm.CoreSpreading(nu, sgm0, zeta)`, or `vpm.ParticleStrengthExchange(nu)`)
-    vpm_fmm         = vpm.FMM(; p=4, ncrit=50, theta=0.4, phi=0.5), # VPM's FMM settings
+    vpm_fmm         = vpm.FMM(; p=4, ncrit=50, theta=0.4, nonzero_sigma=false), # VPM's FMM settings
     vpm_relaxation  = vpm.pedrizzetti,  # VPM relaxation scheme (`vpm.norelaxation`, `vpm.correctedpedrizzetti`, or `vpm.pedrizzetti`)
     vpm_surface     = true,             # Whether to include surfaces in the VPM through ASM/ALM
 
@@ -131,7 +131,7 @@ function run_simulation(
             vpm_integration = vpm.rungekutta3,  # VPM time integration scheme (`vpm.euler` or `vpm.rungekutta3`)
             vpm_transposed  = true,             # VPM transposed stretching scheme
             vpm_viscous     = vpm.Inviscid(),   # VPM viscous diffusion scheme (`vpm.Inviscid()`, `vpm.CoreSpreading(nu, sgm0, zeta)`, or `vpm.ParticleStrengthExchange(nu)`)
-            vpm_fmm         = vpm.FMM(; p=4, ncrit=50, theta=0.4, phi=0.5), # VPM's FMM settings
+            vpm_fmm         = vpm.FMM(; p=4, ncrit=50, theta=0.4, nonzero_sigma=false), # VPM's FMM settings
             vpm_relaxation  = vpm.pedrizzetti,  # VPM relaxation scheme (`vpm.norelaxation`, `vpm.correctedpedrizzetti`, or `vpm.pedrizzetti`)
             vpm_surface     = true,             # Whether to include surfaces in the VPM through ASM/ALM
 
@@ -367,22 +367,22 @@ end
 
 
 
-function add_particle(pfield::vpm.ParticleField, X::Array{Float64, 1},
+function add_particle(pfield::vpm.ParticleField{TVPM,<:Any,<:Any,<:Any,<:Any,<:Any,<:Any}, X::Array{Float64, 1},
                         gamma::Float64, dt::Float64,
                         V::Float64, infD::Array{Float64, 1},
                         sigma::Float64, vol::Float64,
-                        l::Array{T1, 1}, p_per_step::Int64;
-                        overwrite_sigma=nothing) where {T1<:Real}
+                        l::Array{TF, 1}, p_per_step::Int64;
+                        overwrite_sigma=nothing) where {TF,TVPM}
 
     Gamma = gamma*(V*dt)*infD       # Vectorial circulation
 
     # Avoid adding empty particles to the computational domain, or ExaFMM will
     # blow up
-    if sqrt(Gamma[1]^2 + Gamma[2]^2 + Gamma[3]^2) <= 5*eps(vpm.RealFMM)
-        Gamma = 5*eps(vpm.RealFMM)*ones(3)
+    if sqrt(Gamma[1]^2 + Gamma[2]^2 + Gamma[3]^2) <= 5*eps(TVPM)
+        Gamma = 5*eps(TVPM)*ones(3)
     end
 
-    circulation = max(abs(gamma), 5*eps(vpm.RealFMM))
+    circulation = max(abs(gamma), 5*eps(TVPM))
 
     # Decreases p_per_step for slowly moving parts of blade
     # aux = min((sigma/p_per_step)/overwrite_sigma, 1)
